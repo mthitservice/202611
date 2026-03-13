@@ -1,0 +1,2 @@
+$cmd = 'Register-PSSessionConfiguration -Name JEA-UserProvision -Path "C:\ProgramData\JEA\JEA-UserProvision.pssc" -Force'
+Start-Process powershell.exe -ArgumentList "-NoProfile","-Command",$cmd -Verb RunAs -Wait

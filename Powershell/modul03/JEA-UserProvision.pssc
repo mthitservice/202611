@@ -1,0 +1,12 @@
+@{
+    SchemaVersion = '2.0.0.0'
+    SessionType = 'RestrictedRemoteServer'
+    TranscriptDirectory = 'C:\ProgramData\JEA\Transcripts'
+    RunAsVirtualAccount = $true
+    ScriptsToProcess = 'C:\ProgramData\JEA\Check-Window.ps1'
+    RoleDefinitions = @{
+        'DAMAGO\rg-local-jea-UserCreation' = @{
+            RoleCapabilities = 'UserProvisioner'
+        }
+    }
+}
