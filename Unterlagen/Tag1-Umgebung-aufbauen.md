@@ -148,7 +148,7 @@ foreach ($adapter in $adapters) {
 ### 3.4 Sicherheitsreferenzen
 
 - **CVE-2017-0144:** [EternalBlue/WannaCry - SMBv1 Vulnerability](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-0144)
-- **BSI:** [IT-Grundschutz-Baustein SYS.1.2.2: Windows Server](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/06_SYS_IT_Systeme/SYS_1_2_2_Windows_Server_Edition_2023.pdf)
+- **BSI:** [IT-Grundschutz-Baustein SYS.1.2.3: Windows Server (Edition 2023)](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/SYS_1_2_3_Windows_Server_Edition_2023.pdf?__blob=publicationFile&v=5) – SYS.1.2.2 gilt in der Edition 2023 nur noch für Windows Server 2012; [Prüfstatus der BSI-Links](Referenzen.md#deutsche-sicherheitsressourcen-bsi).
 
 ---
 
@@ -205,19 +205,20 @@ foreach ($rule in $ADPorts) {
 
 | Baustein | Beschreibung | Link |
 |----------|--------------|------|
-| SYS.1.1 | Allgemeiner Server | [BSI SYS.1.1](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/IT-Grundschutz-Bausteine/Bausteine_Download_Edition_node.html) |
-| SYS.1.2.2 | Windows Server | Härtungsanforderungen für Windows Server |
-| APP.2.2 | Active Directory Domain Services | Absicherung von AD DS |
+| SYS.1.1 | Allgemeiner Server | [BSI SYS.1.1 (PDF)](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/SYS_1_1_Allgemeiner_Server_Edition_2023.pdf?__blob=publicationFile&v=3) |
+| SYS.1.2.3 | Windows Server | [BSI SYS.1.2.3 (PDF)](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/SYS_1_2_3_Windows_Server_Edition_2023.pdf?__blob=publicationFile&v=5) |
+| APP.2.2 | Active Directory Domain Services | [BSI APP.2.2 (PDF)](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/06_APP_Anwendungen/APP_2_2_Active_Directory_Domain_Services_Edition_2023.pdf?__blob=publicationFile&v=4) |
 
 ### 5.2 Basis-Anforderungen (MUSS)
 
-1. **SYS.1.2.2.A1:** Planung von Windows Server
-2. **SYS.1.2.2.A2:** Sichere Installation von Windows Server
-3. **SYS.1.2.2.A3:** Telemetrie- und Nutzungsdatenübermittlung deaktivieren
-4. **SYS.1.2.2.A4:** Sichere Konfiguration von Windows Server
+1. **SYS.1.2.3.A1:** Planung von Windows Server
+2. **SYS.1.2.3.A2:** Sichere Installation von Windows Server
+3. **SYS.1.2.3.A3:** Telemetrie- und Nutzungsdaten unter Windows Server
+
+Standard-Anforderung (SOLLTE): **SYS.1.2.3.A4:** Schutz vor Ausnutzung von Schwachstellen in Anwendungen.
 
 ```powershell
-# Telemetrie deaktivieren (BSI SYS.1.2.2.A3)
+# Telemetrie deaktivieren (BSI SYS.1.2.3.A3)
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" `
     -Name "AllowTelemetry" -Value 0 -Type DWord
 
@@ -238,7 +239,8 @@ Stop-Service -Name "DiagTrack" -Force
 | NVD | National Vulnerability Database | https://nvd.nist.gov |
 | ENISA | EU Agency for Cybersecurity | https://www.enisa.europa.eu |
 | CERT-EU | Computer Emergency Response Team EU | https://cert.europa.eu |
-| BSI CERT-Bund | Deutsches CERT | https://www.bsi.bund.de/CERT-Bund |
+| BSI CERT-Bund | Deutsches CERT | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Cyber-Sicherheitslage/Reaktion/CERT-Bund/cert-bund_node.html |
+| CERT-Bund WID | Warn- und Informationsdienst | https://wid.cert-bund.de/portal/wid/shortinfo |
 
 ### 6.2 Patch-Management
 

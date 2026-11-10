@@ -84,13 +84,48 @@ Dieses Dokument enthält alle wichtigen Referenzen, Links und Ressourcen für de
 
 ### Deutsche Sicherheitsressourcen (BSI)
 
+**Linkprüfung: 10.11.2026** (HTTP-Abruf mit Browser-User-Agent, Weiterleitungen verfolgt). Alle unten aufgeführten Links liefern HTTP 200, PDFs als `application/pdf`. Ergebnis der Prüfung:
+
+- **Ersetzt (404):** `…/IT-GS-Kompendium_Einzel_PDFs_2023/06_SYS_IT_Systeme/SYS_1_2_2_Windows_Server_Edition_2023.pdf` – die Einzel-PDFs liegen jetzt unter `07_SYS_IT_Systeme`.
+- **Fachlich korrigiert:** In der Edition 2023 heißt **SYS.1.2.2 „Windows Server 2012“**; für aktuelle Windows Server (2016–2025) gilt **SYS.1.2.3 „Windows Server“** (A1 Planung, A2 Sichere Installation, A3 Telemetrie, A4 Schutz vor Ausnutzung von Schwachstellen, A5 Authentisierung/Autorisierung, A6 RDP, A7 PowerShell, A8 VSM). Anforderungsnummern `SYS.1.2.2.Ax` in Tag 2/Tag 4 stammen aus einer älteren Edition und sind nur noch als historische Zuordnung zu verstehen.
+- **Ersetzt (veraltete Seite):** „Technische Sicherheitshinweise und Warnungen“ → WID-Portal von CERT-Bund.
+- **Weiterleitungen:** `/grundschutz` → IT-Grundschutz-Startseite, `/CERT-Bund` → `…/Reaktion/CERT-Bund/cert-bund_node.html`; die kanonischen Ziele sind unten eingetragen.
+
+Vor Kursbeginn prüfen, ob eine neuere Kompendium-Edition erschienen ist (Kompendium-Einstieg).
+
 | Ressource | Beschreibung | Link |
 |-----------|--------------|------|
 | BSI | Bundesamt für Sicherheit in der Informationstechnik | https://www.bsi.bund.de |
-| IT-Grundschutz Kompendium | Umfassende Sicherheitsstandards | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/it-grundschutz-kompendium_node.html |
-| IT-Grundschutz Bausteine | Download einzelner Bausteine | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/IT-Grundschutz-Bausteine/Bausteine_Download_Edition_node.html |
-| CERT-Bund | Deutsches CERT | https://www.bsi.bund.de/CERT-Bund |
-| Warn- und Informationsdienst | Aktuelle Sicherheitswarnungen | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Cyber-Sicherheitslage/Technische-Sicherheitshinweise-und-Warnungen/technische-sicherheitshinweise-und-warnungen_node.html |
+| IT-Grundschutz | Themen-Einstieg | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/it-grundschutz_node.html |
+| IT-Grundschutz Kompendium | Umfassende Sicherheitsstandards (Edition 2023) | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/it-grundschutz-kompendium_node.html |
+| IT-Grundschutz Bausteine | Download einzelner Bausteine (Edition 2023) | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/IT-Grundschutz-Bausteine/Bausteine_Download_Edition_node.html |
+| CERT-Bund | Deutsches CERT | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Cyber-Sicherheitslage/Reaktion/CERT-Bund/cert-bund_node.html |
+| Warn- und Informationsdienst | Aktuelle Sicherheitswarnungen (CERT-Bund WID) | https://wid.cert-bund.de/portal/wid/shortinfo |
+| TR-02102 | Kryptographische Verfahren und Schlüssellängen; insbesondere Teil 1 für das Kryptokonzept der PKI | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Technische-Richtlinien/TR-nach-Thema-sortiert/tr02102/tr02102_node.html |
+
+#### Baustein-PDFs (Edition 2023, geprüft)
+
+| Baustein | Titel | PDF |
+|----------|-------|-----|
+| SYS.1.1 | Allgemeiner Server | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/SYS_1_1_Allgemeiner_Server_Edition_2023.pdf?__blob=publicationFile&v=3) |
+| SYS.1.2.3 | Windows Server | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/SYS_1_2_3_Windows_Server_Edition_2023.pdf?__blob=publicationFile&v=5) |
+| SYS.1.2.2 | Windows Server 2012 (nur Altsysteme) | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/SYS_1_2_2_Windows_Server_2012_Edition_2023.pdf?__blob=publicationFile&v=4) |
+| APP.2.2 | Active Directory Domain Services | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/06_APP_Anwendungen/APP_2_2_Active_Directory_Domain_Services_Edition_2023.pdf?__blob=publicationFile&v=4) |
+| CON.1 | Kryptokonzept | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/03_CON_Konzepte_und_Vorgehensweisen/CON_1_Kryptokonzept_Edition_2023.pdf?__blob=publicationFile&v=3) |
+| CON.3 | Datensicherungskonzept | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/03_CON_Konzepte_und_Vorgehensweisen/CON_3_Datensicherungskonzept_Edition_2023.pdf?__blob=publicationFile&v=3) |
+| ORP.4 | Identitäts- und Berechtigungsmanagement | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/02_ORP_Organisation_und_Personal/ORP_4_Identitaets_und_Berechtigungsmanagement_Editon_2023.pdf?__blob=publicationFile&v=3) |
+| OPS.1.1.5 | Protokollierung | [PDF](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/04_OPS_Betrieb/OPS_1_1_5_Protokollierung_Edition_2023.pdf?__blob=publicationFile&v=3) |
+
+### PKI auf Server Core
+
+| Thema | Link |
+|-------|------|
+| Kurslab mit Hardening und Betriebscheckliste | [Zweistufige PKI auf Server Core](PKI-Server-Core.md) |
+| Microsoft PKI-Design | https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/pki-design-considerations |
+| AD-CS-Installation per PowerShell | https://learn.microsoft.com/en-us/powershell/module/adcsdeployment/install-adcscertificationauthority |
+| Zertifikatvorlagen | https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/certificate-template-concepts |
+| certutil | https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil |
+| certreq | https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certreq_1 |
 
 ---
 
@@ -101,7 +136,8 @@ Dieses Dokument enthält alle wichtigen Referenzen, Links und Ressourcen für de
 | Baustein | Titel | Beschreibung |
 |----------|-------|--------------|
 | SYS.1.1 | Allgemeiner Server | Grundlegende Serverabsicherung |
-| SYS.1.2.2 | Windows Server | Spezifische Windows Server-Härtung |
+| SYS.1.2.3 | Windows Server | Spezifische Windows Server-Härtung (2016–2025) |
+| SYS.1.2.2 | Windows Server 2012 | Nur für Altsysteme |
 | SYS.1.3 | Server unter Linux und Unix | Alternative OS-Absicherung |
 | SYS.1.5 | Virtualisierung | VM-Sicherheit |
 | SYS.1.6 | Containerisierung | Container-Sicherheit |
@@ -122,6 +158,18 @@ Dieses Dokument enthält alle wichtigen Referenzen, Links und Ressourcen für de
 | NET.1.1 | Netzarchitektur und -design | Netzwerksegmentierung |
 | NET.3.1 | Router und Switches | Netzwerkgeräte-Sicherheit |
 | NET.3.2 | Firewall | Firewall-Konfiguration |
+
+### PKI- und Hardening-relevante Querschnittsthemen
+
+| Baustein / Richtlinie | Anwendung im PKI-Lab |
+|----------------------|----------------------|
+| CON.1 Kryptokonzept | Algorithmen, Laufzeiten, Schlüsselwechsel und Freigabe |
+| CON.3 Datensicherungskonzept | CA-Backup und isolierter Restore; getrennte DRA-Schlüsselsicherung |
+| ORP.4 Identitäts- und Berechtigungsmanagement | Tier 0, Rollen und Template-ACLs |
+| OPS.1.1.5 Protokollierung | CA-Auditing und zentrale geschützte Logs |
+| TR-02102-1 | Aktuelle Eignungszeiträume der Kryptoverfahren prüfen |
+
+Für die CA-Server selbst gelten zusätzlich **SYS.1.1** und **SYS.1.2.3** (insbesondere A5 Authentisierung, A7 PowerShell, A8 VSM). Die aktuelle Edition ist maßgeblich; ein Baustein ist keine pauschale BSI-Freigabe für Windows Server 2025.
 
 ---
 
@@ -223,6 +271,16 @@ Install-Module -Name ComputerManagementDsc -Force
 - [ ] Script Block Logging aktivieren
 - [ ] Module Logging aktivieren
 
+### PKI-Checkliste (Server Core)
+
+- [ ] Offline Standalone Root, domänenintegrierte Enterprise Issuing CA, separater HTTP-Host
+- [ ] Root-Thumbprint unabhängig geprüft; AIA/CDP vor Ausstellung erreichbar
+- [ ] Nur angepasste Computer-, Webserver-, Code-Signing-, EFS- und Recovery-Vorlagen veröffentlicht
+- [ ] Enrollment-Gruppen begrenzt; Webserver/Code Signing/Recovery nur nach Freigabe
+- [ ] Starke Identitätsbindung, RPC-Verschlüsselung und CA-/AD-Auditing geprüft
+- [ ] CRL-Publikation und NextUpdate überwacht
+- [ ] CA-Restore und EFS-Recovery getestet; DRA-Policy separat ausgerollt
+
 ---
 
 ## Kontakt
@@ -233,4 +291,4 @@ Bei Fragen zum Kursmaterial wenden Sie sich bitte an Ihren Trainer.
 
 ---
 
-*Letzte Aktualisierung: März 2026*
+*Letzte Aktualisierung: November 2026*

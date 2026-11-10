@@ -335,6 +335,8 @@ Start-Service -Name "Wecsvc"
 | SYS.1.2.2.A11 | Angriffserkennung | Audit-Policies, SIEM |
 | SYS.1.2.2.A20 | Schutz vor versteckten Administratorkonten | Account Auditing |
 
+> **Hinweis:** Diese Nummern stammen aus einer älteren Kompendium-Edition. In der Edition 2023 gilt für aktuelle Windows Server **SYS.1.2.3** (u. a. A5 Authentisierung/Autorisierung, A6 Fernzugriff über RDP, A7 PowerShell); siehe [Referenzen](Referenzen.md#deutsche-sicherheitsressourcen-bsi).
+
 ### 7.2 BSI-Empfehlungen umsetzen
 
 ```powershell

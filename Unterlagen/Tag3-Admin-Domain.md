@@ -8,6 +8,8 @@ Nach Abschluss dieses Moduls können die Teilnehmer:
 - Das Tier-Modell für privilegierten Zugriff implementieren
 - Das AGDLP-Prinzip für Berechtigungsmanagement anwenden
 
+**Ergänzung für Tier 0:** Das [Server-Core-PKI-Lab](PKI-Server-Core.md) beschreibt eine Offline Root CA und eine Enterprise Issuing CA einschließlich Template-ACLs, Rollentrennung und Hardening. Beide CAs sowie deren Schlüssel und Backups gehören zur höchsten Schutzklasse.
+
 ---
 
 ## 1. Admin Forest Konzept (ESAE)

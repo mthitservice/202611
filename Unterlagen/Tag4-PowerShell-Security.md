@@ -31,6 +31,8 @@ Nach Abschluss dieses Moduls können die Teilnehmer:
 
 ### 1.3 Code Signing Zertifikat erstellen
 
+Für die Enterprise-Variante siehe [Server-Core-PKI-Lab: Code Signing](PKI-Server-Core.md#8-code-signing-und-efs-recovery-agent): zweistufige CA, eigene Vorlage `SecureOpsCodeSigning`, dedizierte Enrollment-Gruppe, CA-Manager-Freigabe und nicht exportierbarer Schlüssel. Die selbstsignierte Variante unten bleibt ausschließlich eine unabhängige Lab-Übung.
+
 ```powershell
 # Option 1: Selbstsigniert (nur für Test/Lab)
 $cert = New-SelfSignedCertificate `
@@ -39,11 +41,10 @@ $cert = New-SelfSignedCertificate `
     -CertStoreLocation Cert:\CurrentUser\My `
     -NotAfter (Get-Date).AddYears(3)
 
-# Option 2: Enterprise CA (Produktion)
-# Certificate Template: Code Signing
-# certreq -new request.inf csr.req
-# certreq -submit csr.req certificate.cer
-# certreq -accept certificate.cer
+# Option 2: Eigene Enterprise-Vorlage aus dem Server-Core-PKI-Lab
+# Als berechtigtes Signierkonto ausfuehren; Pending ist vor Freigabe erwartet:
+# Get-Certificate -Template SecureOpsCodeSigning -CertStoreLocation Cert:\CurrentUser\My
+# Danach Request-ID pruefen/freigeben und im selben Benutzerkontext abholen.
 
 # Zertifikat anzeigen
 Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | 
@@ -645,6 +646,9 @@ Set-ItemProperty -Path $ModuleNamesPath -Name "*" -Value "*"  # Alle Module logg
 | SYS.1.2.2.A8 | Schutz der administrativen Schnittstellen |
 | SYS.1.2.2.A12 | Redundanz und Hochverfügbarkeit |
 | SYS.1.2.2.A13 | Automatische Dokumentation der Systemkonfiguration |
+| SYS.1.2.3.A7 | Verwendung der Windows PowerShell (Edition 2023) |
+
+> **Hinweis:** Die `SYS.1.2.2`-Nummern stammen aus einer älteren Edition; in der Edition 2023 ist für aktuelle Windows Server [SYS.1.2.3](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/SYS_1_2_3_Windows_Server_Edition_2023.pdf?__blob=publicationFile&v=5) maßgeblich.
 
 ---
 
@@ -713,7 +717,9 @@ Die folgenden Dateien wurden im Kurs erstellt und können als Referenz verwendet
 - [CVE Database](https://cve.mitre.org/)
 - [ENISA - EU Cybersecurity](https://www.enisa.europa.eu/)
 - [BSI IT-Grundschutz Kompendium](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/it-grundschutz-kompendium_node.html)
-- [CERT-Bund](https://www.bsi.bund.de/CERT-Bund)
+- [CERT-Bund](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Cyber-Sicherheitslage/Reaktion/CERT-Bund/cert-bund_node.html)
+- [CERT-Bund Warn- und Informationsdienst](https://wid.cert-bund.de/portal/wid/shortinfo)
+- [BSI-Linkprüfung und PKI-Hardening-Referenzen](Referenzen.md#deutsche-sicherheitsressourcen-bsi)
 
 ---
 
