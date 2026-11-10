@@ -42,15 +42,39 @@ if (Test-Path $policyPath) {
     throw "Review the existing $policyPath before installing. It will not be overwritten."
 }
 $pathLength = if ($Role -eq 'Root') { 1 } else { 0 }
-$renewalYears = if ($Role -eq 'Root') { 15 } else { 5 }
+$crlPeriod = if ($Role -eq 'Root') { 'Weeks' } else { 'Days' }
+$crlUnits = if ($Role -eq 'Root') { 26 } else { 7 }
+# Sub-CA-Laufzeit bestimmt die Root; RenewalValidityPeriod nur fuer die Root setzen
+$renewalValidity = if ($Role -eq 'Root') { "RenewalValidityPeriod=Years`r`nRenewalValidityPeriodUnits=15`r`n" } else { '' }
 $policy = @"
 [Version]
 Signature="`$Windows NT`$"
+
+"@
+if ($Role -eq 'Issuing') {
+    $cpsUrl = $PublicationUri.AbsoluteUri.TrimEnd('/') + '/cps.html'
+    $policy += @"
+[PolicyStatementExtension]
+Policies=AllIssuancePolicy
+Critical=False
+
+[AllIssuancePolicy]
+OID=2.5.29.32.0
+Notice="SecureOps Lab PKI. Nutzung nur gemaess Certificate Practice Statement."
+URL="$cpsUrl"
+
+"@
+}
+$policy += @"
 [Certsrv_Server]
 RenewalKeyLength=4096
-RenewalValidityPeriod=Years
-RenewalValidityPeriodUnits=$renewalYears
+$($renewalValidity)CRLPeriod=$crlPeriod
+CRLPeriodUnits=$crlUnits
+CRLDeltaPeriod=Days
+CRLDeltaPeriodUnits=0
 LoadDefaultTemplates=0
+AlternateSignatureAlgorithm=0
+
 [BasicConstraintsExtension]
 PathLength=$pathLength
 Critical=Yes
@@ -58,8 +82,10 @@ Critical=Yes
 if ($Role -eq 'Root') {
     $policy += @"
 
+
 [CRLDistributionPoint]
 Empty=True
+
 [AuthorityInformationAccess]
 Empty=True
 "@

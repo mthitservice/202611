@@ -31,9 +31,9 @@ CORE-PKIWEB01 (separater Core-Webserver)
 - Root: **kein Domänenbeitritt, kein Netzadapter im Betrieb**. Lokale Konsole, gesicherte Datenträger, Offline-Patchverfahren. Bei Virtualisierung auch Hypervisor, Backups und Konsole als Tier 0 behandeln.
 - Issuing CA: eigener Member Server, **kein DC**, kein IIS, kein Web Enrollment, kein CES/CEP, kein NDES. Root niemals zum Signieren ans Netz anschließen.
 - D: und E: sind vorbereitete lokale Volumes für CA-Datenbank und Logs. Skripte formatieren keine Datenträger. Alle Transferverzeichnisse vorab auf Administratoren und SYSTEM beschränken.
-- Erhöhte **Windows PowerShell 5.1** (`powershell.exe -NoProfile`), nicht PowerShell 7 für AD-CS-/IIS-Administration. Skripte aus [modul04](../Powershell/modul04/) lokal bereitstellen und prüfen.
+- Erhöhte **Windows PowerShell 5.1** (`powershell.exe -NoProfile`), nicht PowerShell 7 für AD-CS-/IIS-Administration. Die Root- und Enterprise-CA-Installation (Abschnitte 3–5) ist hier **vollständig als Einzelschritte** dokumentiert; die Skripte in [modul04](../Powershell/modul04/) sind nur eine optionale Automatisierung derselben Schritte.
 - Root-Installation als lokaler Administrator. Erste Enterprise-CA-Installation und Vorlagenerstellung mit zeitlich begrenztem **Enterprise-Admin** und lokalen Administratorrechten auf der CA; danach Mitgliedschaft entfernen und getrennte CA-Verwalter/Zertifikatmanager einsetzen.
-- Die Installationsskripte sind absichtlich **keine Reconfiguration-/Repair-Skripte**: vorhandene CA, vorhandene CAPolicy und vorhandene Vorlagen führen zum Abbruch. Bei Teilfehlern Zustand untersuchen, nicht blind erneut starten.
+- Die Schritte sind absichtlich **keine Reconfiguration-/Repair-Anleitung**: vorhandene CA, vorhandene CAPolicy und vorhandene Vorlagen führen zum Abbruch. Bei Teilfehlern Zustand untersuchen, nicht blind erneut starten.
 
 ### Kryptografie und Laufzeiten
 
@@ -75,18 +75,146 @@ Nur eingehendes TCP 80 aus den benötigten Clientnetzen erlauben; vom Administra
 
 ## 3. Offline Root CA installieren
 
-Auf **CORE-ROOT01**, Netzadapter bereits getrennt. Das leere Transferverzeichnis liegt lokal, der Austausch erfolgt über kontrollierte Medien.
+Auf **CORE-ROOT01**, Netzadapter bereits getrennt. Das leere Transferverzeichnis liegt lokal, der Austausch erfolgt über kontrollierte Medien. Alle Schritte in einer erhöhten **Windows PowerShell 5.1** (`powershell.exe -NoProfile`) in derselben Sitzung ausführen.
+
+> Die Schritte 3.1–3.6 entsprechen dem optionalen Skript [Install-Ca.ps1](../Powershell/modul04/Install-Ca.ps1) `-Role Root`. Sie werden hier bewusst einzeln ausgeführt, damit jeder Schritt nachvollzogen und geprüft werden kann.
+
+#### 3.1 Variablen und Fehlerbehandlung
 
 ```powershell
-Set-Location C:\Lab\Powershell\modul04
-.\Install-Ca.ps1 -Role Root -CACommonName SecureOps-RootCA `
-    -PublicationUri http://pki.secureops.local/pki/
-Get-FileHash C:\PKI-Transfer\SecureOps-RootCA.crt -Algorithm SHA256
-certutil.exe -dump C:\PKI-Transfer\SecureOps-RootCA.crt
-certutil.exe -dump C:\PKI-Transfer\SecureOps-RootCA.crl
+$ErrorActionPreference = 'Stop'
+$CAName   = 'SecureOps-RootCA'
+$PkiUrl   = 'http://pki.secureops.local/pki'      # ohne abschliessenden Schraegstrich
+$Transfer = 'C:\PKI-Transfer'
+$DbDir    = 'D:\CA\Database'
+$LogDir   = 'E:\CA\Logs'
+$CertEnroll = "$env:SystemRoot\System32\CertSrv\CertEnroll"
+
+# certutil/certreq werfen keine PowerShell-Fehler; Exitcode deshalb pruefen
+function Invoke-CertUtil {
+    & certutil.exe @args
+    if ($LASTEXITCODE -ne 0) { throw "certutil $($args -join ' ') fehlgeschlagen (Exitcode $LASTEXITCODE)" }
+}
 ```
 
-Das Skript schreibt die CAPolicy vor der Installation: keine Default-Vorlagen, Root-Zertifikat ohne AIA/CDP, maximal eine untergeordnete CA-Ebene. Die Root publiziert danach AIA/CDP für **von ihr ausgestellte** Zertifikate. Basis-CRL: 26 Wochen, Überlappung 14 Tage, keine Delta-CRLs.
+#### 3.2 Vorbedingungen prüfen
+
+```powershell
+(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').InstallationType  # erwartet: Server Core
+(Get-CimInstance Win32_ComputerSystem).PartOfDomain                                       # erwartet: False
+Get-NetAdapter | Where-Object Status -eq 'Up'                                             # erwartet: keine Ausgabe
+Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration'                 # erwartet: False
+Test-Path "$env:SystemRoot\CAPolicy.inf"                                                  # erwartet: False
+
+New-Item -ItemType Directory -Path $DbDir, $LogDir, $Transfer -Force | Out-Null
+```
+
+Weicht ein Ergebnis ab: **abbrechen** und Zustand klären, nicht „drüberinstallieren“.
+
+#### 3.3 CAPolicy.inf der Root CA
+
+Die Datei muss **vor** der Rolleninstallation unter `C:\Windows\CAPolicy.inf` liegen (ANSI/ASCII):
+
+```powershell
+@'
+[Version]
+Signature="$Windows NT$"
+
+[Certsrv_Server]
+RenewalKeyLength=4096
+RenewalValidityPeriod=Years
+RenewalValidityPeriodUnits=15
+CRLPeriod=Weeks
+CRLPeriodUnits=26
+CRLDeltaPeriod=Days
+CRLDeltaPeriodUnits=0
+LoadDefaultTemplates=0
+AlternateSignatureAlgorithm=0
+
+[BasicConstraintsExtension]
+PathLength=1
+Critical=Yes
+
+[CRLDistributionPoint]
+Empty=True
+
+[AuthorityInformationAccess]
+Empty=True
+'@ | Set-Content -Path "$env:SystemRoot\CAPolicy.inf" -Encoding Ascii
+
+Get-Content "$env:SystemRoot\CAPolicy.inf"
+```
+
+| Eintrag | Wirkung |
+|---------|---------|
+| `PathLength=1` | Unter der Root ist genau **eine** CA-Ebene erlaubt |
+| `CRLDistributionPoint/AuthorityInformationAccess Empty` | Das selbstsignierte Root-Zertifikat enthält **kein** AIA/CDP |
+| `LoadDefaultTemplates=0` | Keine Standardvorlagen (bei Standalone ohnehin irrelevant, schadet nicht) |
+| `AlternateSignatureAlgorithm=0` | Klassische PKCS#1-v1.5-Signatur für maximale Kompatibilität |
+
+#### 3.4 Rolle installieren und Root CA einrichten
+
+```powershell
+$feature = Install-WindowsFeature ADCS-Cert-Authority -IncludeManagementTools
+$feature   # Success = True, RestartNeeded = No; sonst erst neu starten
+
+Install-AdcsCertificationAuthority `
+    -CAType StandaloneRootCA `
+    -CACommonName $CAName `
+    -CryptoProviderName 'RSA#Microsoft Software Key Storage Provider' `
+    -KeyLength 4096 `
+    -HashAlgorithmName SHA256 `
+    -ValidityPeriod Years -ValidityPeriodUnits 15 `
+    -DatabaseDirectory $DbDir `
+    -LogDirectory $LogDir `
+    -Force
+```
+
+Mit HSM statt `Microsoft Software Key Storage Provider` den KSP-Namen des Herstellers verwenden (`certutil -csplist`).
+
+#### 3.5 Veröffentlichung, Laufzeiten und Hardening konfigurieren
+
+AIA/CDP gelten für die **von der Root ausgestellten** Zertifikate (also die Issuing CA). `1:` = lokale Datei veröffentlichen, `2:` = URL in Zertifikate aufnehmen. `\n` ist hier **wörtlich** gemeint (certutil-Trennzeichen), kein PowerShell-Escape.
+
+```powershell
+Invoke-CertUtil -setreg CA\CRLPublicationURLs  "1:$CertEnroll\%3%8%9.crl\n2:$PkiUrl/%3%8%9.crl"
+Invoke-CertUtil -setreg CA\CACertPublicationURLs "1:$CertEnroll\%1_%3%4.crt\n2:$PkiUrl/$CAName.crt"
+
+# Basis-CRL 26 Wochen, 14 Tage Ueberlappung, keine Delta-CRL
+Invoke-CertUtil -setreg CA\CRLPeriod Weeks
+Invoke-CertUtil -setreg CA\CRLPeriodUnits 26
+Invoke-CertUtil -setreg CA\CRLOverlapPeriod Days
+Invoke-CertUtil -setreg CA\CRLOverlapPeriodUnits 14
+Invoke-CertUtil -setreg CA\CRLDeltaPeriodUnits 0
+
+# Maximale Laufzeit der von der Root ausgestellten (Sub-CA-)Zertifikate
+Invoke-CertUtil -setreg CA\ValidityPeriod Years
+Invoke-CertUtil -setreg CA\ValidityPeriodUnits 5
+
+# Hardening: vollstaendiges CA-Audit, verschluesselte RPC-Antraege, keine freien SAN-Attribute
+Invoke-CertUtil -setreg CA\AuditFilter 127
+Invoke-CertUtil -setreg CA\InterfaceFlags +IF_ENFORCEENCRYPTICERTREQUEST
+Invoke-CertUtil -setreg policy\EditFlags -EDITF_ATTRIBUTESUBJECTALTNAME2
+auditpol.exe /set /subcategory:"{0CCE9221-69AE-11D9-BED3-505054503030}" /success:enable /failure:enable
+
+Restart-Service CertSvc
+Invoke-CertUtil -crl
+```
+
+#### 3.6 Öffentliche Dateien exportieren und prüfen
+
+```powershell
+Invoke-CertUtil -ca.cert "$Transfer\$CAName.crt"
+Copy-Item "$CertEnroll\$CAName.crl" $Transfer
+
+Get-FileHash "$Transfer\$CAName.crt" -Algorithm SHA256
+certutil.exe -dump "$Transfer\$CAName.crt"   # Thumbprint (Cert Hash sha1), Basic Constraints, Laufzeit
+certutil.exe -dump "$Transfer\$CAName.crl"   # NextUpdate ca. 26 Wochen in der Zukunft
+certutil.exe -getreg CA\CRLPublicationURLs
+certutil.exe -getreg CA\CACertPublicationURLs
+```
+
+Ergebnis: keine Default-Vorlagen, Root-Zertifikat ohne AIA/CDP, maximal eine untergeordnete CA-Ebene. Die Root publiziert AIA/CDP für **von ihr ausgestellte** Zertifikate. Basis-CRL: 26 Wochen, Überlappung 14 Tage, keine Delta-CRLs.
 
 Den im Zertifikat angezeigten **Thumbprint unabhängig** protokollieren (für die spätere Vertrauensinstallation). Zusätzlich SHA-256-Dateihashes über einen getrennten Kanal vergleichen. Ein Hash auf demselben unkontrollierten USB-Medium ist kein Herkunftsnachweis.
 
@@ -104,14 +232,131 @@ Root sichern (Abschnitt 10) und herunterfahren, solange keine Signierung bzw. CR
 
 ## 4. Enterprise Issuing CA vorbereiten und CSR signieren
 
-Auf **CORE-CA01** mit den zeitlich begrenzten Installationsrechten:
+Auf **CORE-CA01** mit den zeitlich begrenzten Installationsrechten (Enterprise Admin + lokaler Administrator), erhöhte **Windows PowerShell 5.1**, alle Schritte in derselben Sitzung.
+
+> Die Schritte 4.1–4.4 entsprechen dem optionalen Skript [Install-Ca.ps1](../Powershell/modul04/Install-Ca.ps1) `-Role Issuing`.
+
+#### 4.1 Variablen und Vorbedingungen
 
 ```powershell
-Set-Location C:\Lab\Powershell\modul04
-.\Install-Ca.ps1 -Role Issuing -CACommonName SecureOps-IssuingCA01 `
-    -PublicationUri http://pki.secureops.local/pki/
+$ErrorActionPreference = 'Stop'
+$CAName   = 'SecureOps-IssuingCA01'
+$PkiUrl   = 'http://pki.secureops.local/pki'
+$Transfer = 'C:\PKI-Transfer'
+$DbDir    = 'D:\CA\Database'
+$LogDir   = 'E:\CA\Logs'
+$CertEnroll = "$env:SystemRoot\System32\CertSrv\CertEnroll"
+
+function Invoke-CertUtil {
+    & certutil.exe @args
+    if ($LASTEXITCODE -ne 0) { throw "certutil $($args -join ' ') fehlgeschlagen (Exitcode $LASTEXITCODE)" }
+}
+
+(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').InstallationType  # Server Core
+$cs = Get-CimInstance Win32_ComputerSystem
+$cs.PartOfDomain       # erwartet: True
+$cs.DomainRole         # erwartet: 3 (Member Server); 4/5 = DC -> abbrechen
+Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration'                 # erwartet: False
+Test-Path "$env:SystemRoot\CAPolicy.inf"                                                  # erwartet: False
+Invoke-WebRequest "$PkiUrl/SecureOps-RootCA.crl" -UseBasicParsing | Select-Object StatusCode  # 200
+
+New-Item -ItemType Directory -Path $DbDir, $LogDir, $Transfer -Force | Out-Null
 ```
 
+#### 4.2 CAPolicy.inf (Policy-Datei) der Enterprise CA
+
+Die Policy-Datei steuert, was im **CSR der Issuing CA** angefordert wird (u. a. Zertifikatsrichtlinie mit CPS-Verweis, Pfadlänge) sowie die Grundeinstellungen der CA bei der Installation:
+
+```powershell
+@'
+[Version]
+Signature="$Windows NT$"
+
+[PolicyStatementExtension]
+Policies=AllIssuancePolicy
+Critical=False
+
+[AllIssuancePolicy]
+OID=2.5.29.32.0
+Notice="SecureOps Lab PKI. Nutzung nur gemaess Certificate Practice Statement."
+URL="http://pki.secureops.local/pki/cps.html"
+
+[Certsrv_Server]
+RenewalKeyLength=4096
+CRLPeriod=Days
+CRLPeriodUnits=7
+CRLDeltaPeriod=Days
+CRLDeltaPeriodUnits=0
+LoadDefaultTemplates=0
+AlternateSignatureAlgorithm=0
+
+[BasicConstraintsExtension]
+PathLength=0
+Critical=Yes
+'@ | Set-Content -Path "$env:SystemRoot\CAPolicy.inf" -Encoding Ascii
+
+Get-Content "$env:SystemRoot\CAPolicy.inf"
+```
+
+| Abschnitt / Eintrag | Wirkung |
+|---------------------|---------|
+| `[PolicyStatementExtension]` | Nimmt die Erweiterung *Certificate Policies* in das Issuing-CA-Zertifikat auf |
+| `OID=2.5.29.32.0` | *All Issuance Policies* (anyPolicy): die CA darf Zertifikate mit beliebigen Ausstellungsrichtlinien ausstellen. Für Produktion **eigene OID** unter der IANA-PEN der Organisation vergeben (z. B. `1.3.6.1.4.1.<PEN>.…`) und ggf. zusätzlich aufnehmen |
+| `Notice` / `URL` | Benutzerhinweis und Verweis auf das CPS; nur ASCII-Zeichen im Notice-Text. Die URL muss per HTTP anonym erreichbar sein (siehe 4.5) |
+| `PathLength=0`, `Critical=Yes` | Die Issuing CA darf **keine** weiteren CAs ausstellen |
+| `LoadDefaultTemplates=0` | Nach der Installation werden **keine** Standardvorlagen (User, Computer, WebServer …) veröffentlicht; nur die eigenen Vorlagen aus Abschnitt 6 |
+| `CRLPeriod*` | Erste CRL bereits mit 7 Tagen, keine Delta-CRL (wird in 5.3 nochmals fest gesetzt) |
+| `RenewalKeyLength=4096` | Schlüssellänge bei CA-Erneuerung mit neuem Schlüssel |
+
+`RenewalValidityPeriod*` fehlt bewusst: Die Laufzeit einer untergeordneten CA bestimmt die **Root** (`ValidityPeriodUnits=5`, Abschnitt 3.5), nicht die CAPolicy.
+
+#### 4.3 Rolle installieren und CSR erzeugen
+
+```powershell
+$feature = Install-WindowsFeature ADCS-Cert-Authority -IncludeManagementTools
+$feature   # Success = True, RestartNeeded = No
+
+Install-AdcsCertificationAuthority `
+    -CAType EnterpriseSubordinateCA `
+    -CACommonName $CAName `
+    -CryptoProviderName 'RSA#Microsoft Software Key Storage Provider' `
+    -KeyLength 4096 `
+    -HashAlgorithmName SHA256 `
+    -DatabaseDirectory $DbDir `
+    -LogDirectory $LogDir `
+    -OutputCertRequestFile "$Transfer\$CAName.req" `
+    -Force
+```
+
+Die Warnung, dass die Installation unvollständig ist, ist **erwartet**: Die CA wartet auf ihr signiertes Zertifikat. `CertSvc` startet erst nach Abschnitt 5.
+
+#### 4.4 CSR prüfen
+
+```powershell
+certutil.exe -dump "$Transfer\$CAName.req"
+Get-FileHash "$Transfer\$CAName.req" -Algorithm SHA256
+```
+
+Im Dump prüfen: Subject `CN=SecureOps-IssuingCA01, DC=…`, RSA 4096, **Basic Constraints** `Subject Type=CA, Path Length Constraint=0`, **Certificate Policies** `2.5.29.32.0` mit CPS-URL, kein SAN.
+
+#### 4.5 CPS auf dem Publikationspunkt bereitstellen
+
+Auf **CORE-PKIWEB01** eine einfache, statische CPS-Seite ablegen (Inhalt durch die organisatorische Policy ersetzen):
+
+```powershell
+@'
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><title>SecureOps PKI - CPS</title></head>
+<body>
+<h1>SecureOps Lab PKI - Certificate Practice Statement</h1>
+<p>Betreiber, Geltungsbereich, Rollen, Antrags- und Freigabeprozess, Sperrung, Laufzeiten,
+Schluesselschutz, Audit und Kontakt fuer Sperranfragen.</p>
+</body></html>
+'@ | Set-Content D:\PKI-Public\cps.html -Encoding UTF8
+Invoke-WebRequest http://pki.secureops.local/pki/cps.html -UseBasicParsing | Select-Object StatusCode
+```
+
+#### 4.6 CSR an der Offline Root signieren
 Ergebnis: `C:\PKI-Transfer\SecureOps-IssuingCA01.req`; die Installation ist bis zum Import des signierten CA-Zertifikats **ausstehend**. Kein Versuch, die Root per Netzwerk zu erreichen.
 
 CSR auf kontrolliertem Medium zur Root übertragen. Auf **CORE-ROOT01** ausschließlich diesen CA-Antrag prüfen: Herkunft, Hash, Subject, RSA 4096, Basic Constraints `CA=TRUE, PathLength=0`, kein unerwarteter SAN. Keine fremden Anträge mit Root-CA-Rechten signieren.
@@ -122,45 +367,103 @@ certreq.exe -submit -config 'CORE-ROOT01\SecureOps-RootCA' `
     C:\PKI-Transfer\SecureOps-IssuingCA01.req
 ```
 
-Die Standalone CA lässt den Antrag zunächst **pending**. Die ausgegebene Request-ID notieren und genau diesen Datensatz untersuchen. Nicht pauschal Auto-Issue auf der Root aktivieren. Die folgenden Aufrufe verwenden die zuvor geladene Fehlerprüfung:
+Die Standalone CA lässt den Antrag zunächst **pending**. Die ausgegebene Request-ID notieren und genau diesen Datensatz untersuchen. Nicht pauschal Auto-Issue auf der Root aktivieren. `Invoke-CertUtil` stammt aus Schritt 3.1 (in neuer Sitzung erneut definieren):
 
 ```powershell
-. C:\Lab\Powershell\modul04\Pki.Common.ps1
 $requestId = Read-Host 'Gepruefte Request-ID'
 if ($requestId -notmatch '^[1-9][0-9]*$') { throw 'Ungueltige Request-ID' }
-Invoke-PkiNative certutil.exe @('-view', '-restrict', "RequestID=$requestId")
+Invoke-CertUtil -view -restrict "RequestID=$requestId"
 # Erst nach fachlicher Freigabe des angezeigten Antrags:
-Invoke-PkiNative certutil.exe @('-resubmit', $requestId)
-Invoke-PkiNative certreq.exe @('-retrieve', '-config', 'CORE-ROOT01\SecureOps-RootCA',
-    $requestId, 'C:\PKI-Transfer\SecureOps-IssuingCA01.crt')
-Invoke-PkiNative certutil.exe @('-dump', 'C:\PKI-Transfer\SecureOps-IssuingCA01.crt')
+Invoke-CertUtil -resubmit $requestId
+certreq.exe -retrieve -config 'CORE-ROOT01\SecureOps-RootCA' $requestId C:\PKI-Transfer\SecureOps-IssuingCA01.crt
+if ($LASTEXITCODE -ne 0) { throw "certreq -retrieve fehlgeschlagen ($LASTEXITCODE)" }
+Invoke-CertUtil -dump C:\PKI-Transfer\SecureOps-IssuingCA01.crt
+# Aktuelle Root-CRL beilegen
+Copy-Item "$env:SystemRoot\System32\CertSrv\CertEnroll\SecureOps-RootCA.crl" C:\PKI-Transfer -Force
 ```
 
-Vor Weitergabe Laufzeit, Issuer, Signatur, CA-Basic-Constraints/PathLength 0, Key Usage und HTTP-AIA/CDP des **ausgestellten** Zertifikats prüfen. Root-Zertifikat, aktuelle Root-CRL und signiertes Issuing-Zertifikat zurückgeben, Root erneut sichern und offline herunterfahren.
+Vor Weitergabe Laufzeit (max. 5 Jahre), Issuer, Signatur, CA-Basic-Constraints/PathLength 0, Certificate Policies mit CPS-URL, Key Usage und HTTP-AIA/CDP des **ausgestellten** Zertifikats prüfen. Root-Zertifikat, aktuelle Root-CRL und signiertes Issuing-Zertifikat zurückgeben, Root erneut sichern und offline herunterfahren.
 
 ## 5. Issuing CA abschließen und Vertrauen verteilen
 
-Auf **CORE-CA01** die drei öffentlichen Dateien nach `C:\PKI-Transfer` importieren:
+Auf **CORE-CA01** die drei öffentlichen Dateien nach `C:\PKI-Transfer` importieren. Variablen und `Invoke-CertUtil` aus 4.1 verwenden (in neuer Sitzung erneut ausführen).
+
+> Die Schritte 5.1–5.4 entsprechen dem optionalen Skript [Complete-IssuingCa.ps1](../Powershell/modul04/Complete-IssuingCa.ps1).
+
+#### 5.1 Root-Fingerprint prüfen und Root vertrauen
 
 ```powershell
-.\Complete-IssuingCa.ps1 `
-    -RootCertificate C:\PKI-Transfer\SecureOps-RootCA.crt `
-    -ExpectedRootThumbprint (Read-Host 'Unabhaengig bestaetigter Root-Thumbprint') `
-    -RootCrl C:\PKI-Transfer\SecureOps-RootCA.crl `
-    -IssuingCertificate C:\PKI-Transfer\SecureOps-IssuingCA01.crt
+$expected = (Read-Host 'Unabhaengig bestaetigter Root-Thumbprint') -replace '\s', ''
+$root = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 "$Transfer\SecureOps-RootCA.crt"
+if ($root.Thumbprint -ne $expected.ToUpper()) { throw 'Root-Thumbprint stimmt NICHT ueberein - abbrechen!' }
+
+Invoke-CertUtil -addstore -f Root "$Transfer\SecureOps-RootCA.crt"
+Invoke-CertUtil -addstore -f Root "$Transfer\SecureOps-RootCA.crl"
 ```
 
-Das Skript prüft den Root-Fingerprint, installiert Root und CRL, validiert die Issuing-Kette einschließlich Sperrprüfung und installiert das CA-Zertifikat. Danach: Basis-CRL sieben Tage, Überlappung ein Tag, keine Delta-CRL, RPC-Paketverschlüsselung erforderlich, freie SAN-Requestattribute deaktiviert, CA-Auditfilter gesetzt.
+#### 5.2 Kette prüfen und CA-Zertifikat installieren
 
+```powershell
+# Prueft Kette, AIA- und CDP-Abruf ueber HTTP; Fehler hier NICHT ignorieren
+Invoke-CertUtil -verify -urlfetch "$Transfer\$CAName.crt"
+
+Invoke-CertUtil -installcert "$Transfer\$CAName.crt"
+Start-Service CertSvc
+Get-Service CertSvc
+```
+
+#### 5.3 Veröffentlichung, Laufzeiten und Hardening konfigurieren
+
+```powershell
+Invoke-CertUtil -setreg CA\CRLPublicationURLs  "1:$CertEnroll\%3%8%9.crl\n2:$PkiUrl/%3%8%9.crl"
+Invoke-CertUtil -setreg CA\CACertPublicationURLs "1:$CertEnroll\%1_%3%4.crt\n2:$PkiUrl/$CAName.crt"
+
+# Basis-CRL 7 Tage, 1 Tag Ueberlappung, keine Delta-CRL
+Invoke-CertUtil -setreg CA\CRLPeriod Days
+Invoke-CertUtil -setreg CA\CRLPeriodUnits 7
+Invoke-CertUtil -setreg CA\CRLOverlapPeriod Days
+Invoke-CertUtil -setreg CA\CRLOverlapPeriodUnits 1
+Invoke-CertUtil -setreg CA\CRLDeltaPeriodUnits 0
+
+# Obergrenze fuer ausgestellte Endzertifikate (Vorlagen begrenzen zusaetzlich auf 1 Jahr)
+Invoke-CertUtil -setreg CA\ValidityPeriod Years
+Invoke-CertUtil -setreg CA\ValidityPeriodUnits 2
+
+# Hardening
+Invoke-CertUtil -setreg CA\AuditFilter 127
+Invoke-CertUtil -setreg CA\InterfaceFlags +IF_ENFORCEENCRYPTICERTREQUEST
+Invoke-CertUtil -setreg policy\EditFlags -EDITF_ATTRIBUTESUBJECTALTNAME2
+auditpol.exe /set /subcategory:"{0CCE9221-69AE-11D9-BED3-505054503030}" /success:enable /failure:enable
+
+Restart-Service CertSvc
+Invoke-CertUtil -crl
+```
+
+#### 5.4 Öffentliche Dateien exportieren und Ergebnis prüfen
+
+```powershell
+Invoke-CertUtil -ca.cert "$Transfer\$CAName.crt"
+Copy-Item "$CertEnroll\$CAName.crl" $Transfer -Force
+
+certutil.exe -getreg CA\CRLPublicationURLs
+certutil.exe -getreg CA\CACertPublicationURLs
+certutil.exe -getreg CA\InterfaceFlags
+certutil.exe -getreg policy\EditFlags
+certutil.exe -catemplates        # erwartet: leer, solange Abschnitt 6 noch nicht ausgefuehrt ist
+certutil.exe -dump "$Transfer\$CAName.crl"
+```
+
+Ergebnis: Basis-CRL sieben Tage, Überlappung ein Tag, keine Delta-CRL, RPC-Paketverschlüsselung erforderlich, freie SAN-Requestattribute deaktiviert, CA-Auditfilter gesetzt, keine Standardvorlagen veröffentlicht.
+
+#### 5.5 Publizieren und Vertrauen verteilen
 `SecureOps-IssuingCA01.crt` und `SecureOps-IssuingCA01.crl` kontrolliert nach `D:\PKI-Public` auf **CORE-PKIWEB01** kopieren. Erst nach erfolgreichem HTTP-Abruf von einem Client Vorlagen veröffentlichen.
 
 Mit Enterprise-Rechten auf der Issuing CA die **verifizierten** Zertifikate in AD veröffentlichen:
 
 ```powershell
-. C:\Lab\Powershell\modul04\Pki.Common.ps1
-Invoke-PkiNative certutil.exe @('-dspublish', '-f', 'C:\PKI-Transfer\SecureOps-RootCA.crt', 'RootCA')
-Invoke-PkiNative certutil.exe @('-dspublish', '-f', 'C:\PKI-Transfer\SecureOps-IssuingCA01.crt', 'SubCA')
-Invoke-PkiNative certutil.exe @('-dspublish', '-f', 'C:\PKI-Transfer\SecureOps-IssuingCA01.crt', 'NTAuthCA')
+Invoke-CertUtil -dspublish -f "$Transfer\SecureOps-RootCA.crt" RootCA
+Invoke-CertUtil -dspublish -f "$Transfer\$CAName.crt" SubCA
+Invoke-CertUtil -dspublish -f "$Transfer\$CAName.crt" NTAuthCA
 ```
 
 NTAuth ist für die beabsichtigte AD-Authentifizierung relevant und keine pauschale Vertrauensliste für beliebige CAs. AD-Replikation abwarten. Root zusätzlich per Computer-GPO in **Trusted Root Certification Authorities**, Issuing-Zertifikat in **Intermediate Certification Authorities** verteilen. In einem reinen PowerShell-Lab kann ein bereits kontrolliert verteilter öffentlicher Root-/Issuing-Export je Zielmaschine mit `certutil -addstore Root ...` bzw. `certutil -addstore CA ...` importiert werden. Niemals Endzertifikate als Root vertrauen.
@@ -291,12 +594,12 @@ certreq.exe -submit -config 'CORE-CA01.secureops.local\SecureOps-IssuingCA01' `
 Antrag bleibt pending. Zertifikatmanager prüft auf **CORE-CA01** Request-ID, Antragsteller, Vorlage, Subject und **alle SANs** sowie unabhängige DNS-/Dienstverantwortung. Prüfung und Freigabe protokollieren:
 
 ```powershell
-. C:\Lab\Powershell\modul04\Pki.Common.ps1
+# Invoke-CertUtil siehe Abschnitt 3.1
 $requestId = Read-Host 'Gepruefte Request-ID'
 if ($requestId -notmatch '^[1-9][0-9]*$') { throw 'Ungueltige Request-ID' }
-Invoke-PkiNative certutil.exe @('-view', '-restrict', "RequestID=$requestId")
+Invoke-CertUtil -view -restrict "RequestID=$requestId"
 # Nach Freigabe:
-Invoke-PkiNative certutil.exe @('-resubmit', $requestId)
+Invoke-CertUtil -resubmit $requestId
 ```
 
 Zurück auf **demselben Antragsteller-Host** mit dortigem privaten Schlüssel:
@@ -422,13 +725,13 @@ BSI-Zuordnung (Edition 2023): **SYS.1.1**, **SYS.1.2.3 Windows Server** (A5, A7,
 Issuing CA: täglich neue Basis-CRL erzeugen und über kontrollierten Job auf den HTTP-Host übertragen, bei Sperrungen sofort. Root: spätestens nach 20 Wochen eine neue CRL-Zeremonie planen, nicht erst kurz vor Ende der 26 Wochen. **NextUpdate** der tatsächlich publizierten Datei ist maßgeblich; Überlappung ersetzt keinen Überwachungsalarm.
 
 ```powershell
-. C:\Lab\Powershell\modul04\Pki.Common.ps1
-Invoke-PkiNative certutil.exe @('-crl')
+# Invoke-CertUtil siehe Abschnitt 3.1
+Invoke-CertUtil -crl
 certutil.exe -dump C:\Windows\System32\CertSrv\CertEnroll\SecureOps-IssuingCA01.crl
 # Beispiel: 1 = Key Compromise; nur nach gepruefter Incident-Entscheidung:
 $serial = Read-Host 'Gepruefte Seriennummer des zu sperrenden Zertifikats'
-Invoke-PkiNative certutil.exe @('-revoke', $serial, '1')
-Invoke-PkiNative certutil.exe @('-crl')
+Invoke-CertUtil -revoke $serial 1
+Invoke-CertUtil -crl
 ```
 
 Neue CRL zuerst in Staging prüfen, dann atomar veröffentlichen; nicht per Direktkopie eine gerade gelesene Datei überschreiben. Für Routinejobs eingeschränkte Transferrechte, weder Domain Admin noch CA-Schlüssel verwenden. Ein erfolgreicher CA-Aufruf ohne erfolgreiche HTTP-Veröffentlichung ist **kein** erfolgreicher CRL-Job.
@@ -438,13 +741,13 @@ Neue CRL zuerst in Staging prüfen, dann atomar veröffentlichen; nicht per Dire
 Auf jeder CA separat, Ziel vorab ausschließlich für SYSTEM/CA-Backup-Verantwortliche berechtigen. Im Lab ist `F:\CA-Backup` ein dediziertes, geschütztes Ziel, nicht das Webverzeichnis:
 
 ```powershell
-. C:\Lab\Powershell\modul04\Pki.Common.ps1
+# Invoke-CertUtil siehe Abschnitt 3.1
 New-Item F:\CA-Backup -ItemType Directory -Force
-Invoke-PkiNative certutil.exe @('-backupDB', 'F:\CA-Backup')
+Invoke-CertUtil -backupDB F:\CA-Backup
 # Interaktive Kennwortabfrage; Kennwort NICHT als Befehlsargument/Quelltext speichern:
-Invoke-PkiNative certutil.exe @('-backupKey', 'F:\CA-Backup')
-Invoke-PkiNative reg.exe @('export', 'HKLM\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration',
-    'F:\CA-Backup\CA-Configuration.reg', '/y')
+Invoke-CertUtil -backupKey F:\CA-Backup
+reg.exe export HKLM\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration F:\CA-Backup\CA-Configuration.reg /y
+if ($LASTEXITCODE -ne 0) { throw "reg export fehlgeschlagen ($LASTEXITCODE)" }
 Copy-Item C:\Windows\CAPolicy.inf F:\CA-Backup
 ```
 
