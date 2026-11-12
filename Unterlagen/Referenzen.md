@@ -127,6 +127,16 @@ Vor Kursbeginn prüfen, ob eine neuere Kompendium-Edition erschienen ist (Kompen
 | certutil | https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil |
 | certreq | https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certreq_1 |
 
+### JIT-Administration und Hyper-V-Failover-Cluster (Tag 5)
+
+| Thema | Link |
+|-------|------|
+| Kurslab mit Einzelskripten | [Tag 5: JIT & Failover Cluster](Tag5-Failover-Cluster-JIT.md) |
+| AD-PAM / zeitlich begrenzte Mitgliedschaft | https://learn.microsoft.com/de-de/microsoft-identity-manager/pam/privileged-identity-management-for-active-directory-domain-services |
+| Vorab bereitgestellte Clusterobjekte (CNO) | https://learn.microsoft.com/de-de/windows-server/failover-clustering/prestage-cluster-adds |
+| Storage Spaces Direct bereitstellen | https://learn.microsoft.com/de-de/windows-server/storage/storage-spaces/deploy-storage-spaces-direct |
+| Switch Embedded Teaming und RDMA | https://learn.microsoft.com/de-de/windows-server/virtualization/hyper-v-virtual-switch/rdma-and-switch-embedded-teaming |
+
 ---
 
 ## BSI IT-Grundschutz Bausteine (Server-relevant)

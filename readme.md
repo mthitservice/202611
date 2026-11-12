@@ -6,7 +6,7 @@
 
 ## Kursübersicht
 
-Dieser 4-tägige Kurs vermittelt den Teilnehmern die notwendigen Kenntnisse zur sicheren Installation, Konfiguration und Härtung von Windows Server 2025 in Unternehmensumgebungen.
+Dieser 5-tägige Kurs vermittelt den Teilnehmern die notwendigen Kenntnisse zur sicheren Installation, Konfiguration und Härtung von Windows Server 2025 in Unternehmensumgebungen.
 
 ### Kursziele
 
@@ -17,6 +17,7 @@ Dieser 4-tägige Kurs vermittelt den Teilnehmern die notwendigen Kenntnisse zur 
 - PowerShell-Skript-Signierung und Just Enough Administration (JEA)
 - Desired State Configuration (DSC) für konsistente Serverkonfiguration
 - Zweistufige PKI auf Server Core: Offline Root CA, Enterprise Issuing CA und angepasste Zertifikatvorlagen
+- Just-in-Time-Administration: Hyper-V-Failover-Cluster mit Storage Spaces Direct vollständig per PowerShell vom Jump Server
 
 ### Tagesübersicht
 
@@ -26,6 +27,7 @@ Dieser 4-tägige Kurs vermittelt den Teilnehmern die notwendigen Kenntnisse zur 
 | 2 | [Jump Server](Unterlagen/Tag2-Jump-Server.md) | PAW-Konzept, Security Baselines, Netzwerksegmentierung |
 | 3 | [Admin Domain](Unterlagen/Tag3-Admin-Domain.md) | ESAE-Architektur, AGDLP-Prinzip, Tier-Modell |
 | 4 | [PowerShell Security](Unterlagen/Tag4-PowerShell-Security.md) | JEA, DSC, Skript-Signierung |
+| 5 | [JIT & Failover Cluster](Unterlagen/Tag5-Failover-Cluster-JIT.md) | JIT-Admin (AD-PAM/TTL), Hyper-V-Cluster mit S2D vom Jump Server, Skripte in [modul05](Powershell/modul05/) |
 
 ### Zusatzmodul PKI (nach Tag 3 / als Grundlage für Tag 4)
 
@@ -51,6 +53,7 @@ Geprüfte BSI-Links (Stand 10.11.2026) inkl. Baustein-PDFs: [Referenzen](Unterla
 │   ├── modul01/         # Grundlegende Skripte
 │   ├── modul02/         # DSC-Konfigurationen
 │   ├── modul03/         # JEA-Konfigurationen
-│   └── modul04/         # Server-Core-PKI und Vorlagen
+│   ├── modul04/         # Server-Core-PKI und Vorlagen
+│   └── modul05/         # JIT-Admin, Hyper-V-Failover-Cluster mit S2D
 └── readme.md            # Diese Datei
 ```

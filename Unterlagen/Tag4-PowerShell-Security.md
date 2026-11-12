@@ -723,6 +723,12 @@ Die folgenden Dateien wurden im Kurs erstellt und können als Referenz verwendet
 
 ---
 
+## Nächster Tag
+
+➡️ [Tag 5: JIT-Administration – Hyper-V-Failover-Cluster mit S2D](Tag5-Failover-Cluster-JIT.md)
+
+---
+
 ## Kursabschluss
 
 Herzlichen Glückwunsch zum erfolgreichen Abschluss des Kurses **Microsoft Windows 2025 Server SecureOps**!
